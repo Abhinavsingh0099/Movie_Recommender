@@ -2,23 +2,34 @@ import pickle
 import pandas as pd
 import streamlit as st
 
-
+# Function to recommend movies based on similarity
 def recommend(movie):
-    movie_index = movies[movies['title'] == movie].index[0]
-    distances = similarity[movie_index]
-    movies_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
-    recommended_movies = []
-
-    for i in movies_list:
-        recommended_movies.append(movies.iloc[i[0]].title)
-
-    return recommended_movies
-
+    try:
+        movie_index = movies[movies['title'] == movie].index[0]
+        distances = similarity[movie_index]
+        movies_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+        recommended_movies = [movies.iloc[i[0]].title for i in movies_list]
+        return recommended_movies
+    except IndexError:
+        return ["Movie not found in the dataset"]
 
 # Load data and models
-movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
-movies = pd.DataFrame(movies_dict)
-similarity = pickle.load(open('similarity.pkl', 'rb'))
+try:
+    with open('movie_dict.pkl', 'rb') as f:
+        movies_dict = pickle.load(f)
+    movies = pd.DataFrame(movies_dict)
+    
+    with open('similarity.pkl', 'rb') as f:
+        similarity = pickle.load(f)
+except FileNotFoundError:
+    st.error("Error: Pickle files not found. Make sure you have the correct file paths.")
+    st.stop()
+except pickle.UnpicklingError:
+    st.error("Error: Unable to unpickle files. The files might be corrupted.")
+    st.stop()
+except Exception as e:
+    st.error(f"An error occurred while loading the pickle files: {e}")
+    st.stop()
 
 # Streamlit app
 st.title('Movie Recommender System')
@@ -30,16 +41,6 @@ selected_movie_name = st.selectbox(
 
 if st.button('Recommend'):
     recommendations = recommend(selected_movie_name)
-
-    for i in recommendations:
-        st.write(i)
-
-    # if recommendations:
-    #     st.write("Recommended Movies:")
-    #     for i, recommendation in enumerate(recommendations, start=1):
-    #         st.write(f"{i}. {recommendation}")
-    # else:
-    #     st.write("No recommendations found.")
-
-
-
+    st.write("Recommended Movies:")
+    for movie in recommendations:
+        st.write(movie)
